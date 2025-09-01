@@ -1,0 +1,56 @@
+using UnityEngine;
+
+public class CharacterMovement : MonoBehaviour
+{
+    [Header("Key Bindings")]
+    [SerializeField] private KeyCode forwardKey = KeyCode.W;
+    [SerializeField] private KeyCode backwardKey = KeyCode.S;
+    [SerializeField] private KeyCode strafeLeftKey = KeyCode.A;
+    [SerializeField] private KeyCode strafeRightKey = KeyCode.D;
+
+    [Header("Movement Speeds")]
+    [SerializeField] private float forwardSpeed = 5f;
+    [SerializeField] private float backwardSpeed = 3f;
+    [SerializeField] private float strafeSpeed = 4f;
+
+    [Header("Terrain (Optional)")]
+    [SerializeField] private Terrain terrain; // Assign in Inspector if using terrain
+
+    private Rigidbody rb;
+    private Animator animator;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+        animator = GetComponentInChildren<Animator>(); // Assumes Animator is on the model or a child
+    }
+
+    void Update()
+    {
+        // Get input based on configured keys
+        float moveForward = Input.GetKey(forwardKey) ? 1f : Input.GetKey(backwardKey) ? -1f : 0f;
+        float moveStrafe = Input.GetKey(strafeRightKey) ? 1f : Input.GetKey(strafeLeftKey) ? -1f : 0f;
+
+        // Calculate movement vector relative to the character's orientation
+        Vector3 movement = (transform.forward * moveForward + transform.right * moveStrafe).normalized;
+
+        // Apply appropriate speed based on direction
+        float speed = moveForward > 0 ? forwardSpeed : moveForward < 0 ? backwardSpeed : strafeSpeed;
+        movement *= speed * Time.deltaTime;
+
+        // Adjust for terrain height (if terrain is assigned)
+        Vector3 newPosition = rb.position + movement;
+        if (terrain != null)
+        {
+            float terrainHeight = terrain.SampleHeight(newPosition) + terrain.transform.position.y;
+            newPosition.y = terrainHeight + 0.5f; // Adjust offset to match model pivot
+        }
+
+        // Move the character
+        rb.MovePosition(newPosition);
+
+        // Update Animator for walking animation
+        float moveSpeed = movement.magnitude / Time.deltaTime; // Convert to speed per second
+        animator.SetFloat("Speed", moveSpeed);
+    }
+}
